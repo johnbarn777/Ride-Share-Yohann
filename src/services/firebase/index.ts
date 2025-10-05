@@ -4,6 +4,7 @@ import {
   browserLocalPersistence,
   connectAuthEmulator,
   getAuth,
+  getReactNativePersistence,
   inMemoryPersistence,
   initializeAuth,
   setPersistence
@@ -22,23 +23,6 @@ let firestoreInstance: ReturnType<typeof getFirestore> | null = null;
 let firestoreEmulatorConfigured = false;
 let functionsInstance: ReturnType<typeof getFunctions> | null = null;
 let functionsEmulatorConfigured = false;
-
-type ReactNativePersistenceFactory = typeof import('firebase/auth/react-native')['getReactNativePersistence'];
-
-let cachedNativePersistenceFactory: ReactNativePersistenceFactory | null = null;
-
-const resolveReactNativePersistence = (): ReactNativePersistenceFactory | null => {
-  if (cachedNativePersistenceFactory !== null) {
-    return cachedNativePersistenceFactory;
-  }
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    cachedNativePersistenceFactory = require('firebase/auth/react-native').getReactNativePersistence;
-  } catch (error) {
-    cachedNativePersistenceFactory = null;
-  }
-  return cachedNativePersistenceFactory;
-};
 
 const readEnv = (key: string) => {
   const value = process.env[key];
@@ -94,8 +78,8 @@ export const getFirebaseApp = () => {
 
 const createAuthInstance = (app: ReturnType<typeof initializeApp>): Auth => {
   if (Platform.OS === 'ios' || Platform.OS === 'android') {
-    const nativePersistenceFactory = resolveReactNativePersistence();
-    if (!nativePersistenceFactory) {
+    const nativePersistenceFactory = getReactNativePersistence;
+    if (typeof nativePersistenceFactory !== 'function') {
       return initializeAuth(app);
     }
     return initializeAuth(app, {
